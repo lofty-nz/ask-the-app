@@ -121,7 +121,7 @@
           box-shadow: 0 0 0 4000px rgba(0,0,0,.18); animation: ring 1s ease-in-out infinite alternate; }
   .ring.on { display: block; }
   @keyframes ring { from { outline: 0 solid transparent; } to { outline: 6px solid color-mix(in srgb, var(--accent) 35%, transparent); } }
-  @media (max-width: 520px) { .wrap:not(.inline) .panel { left: 8px; right: 8px; bottom: ${Math.min(Y, 12) + 64}px; width: auto; max-width: none; height: 75vh; } .fab { bottom: ${Math.min(Y, 12)}px; } }
+  @media (max-width: 520px) { .wrap:not(.inline) .panel { left: 8px; right: 8px; bottom: ${Math.min(Y, 12) + 64}px; width: auto; max-width: none; height: 75vh; } .fab { bottom: ${Math.min(Y, 12)}px; ${SIDE}: ${Math.min(X, 16)}px; } }
   `;
 
   const ICON = {
