@@ -61,11 +61,13 @@
            height: 600px; max-height: calc(100vh - 110px); background: var(--bg); border: 1px solid var(--line); border-radius: 16px;
            box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
   .panel[hidden] { display: none; }
+  .wrap.inline { height: 100%; }
   .inline .panel { position: static; width: 100%; max-width: none; height: 100%; max-height: none; box-shadow: none; }
   header { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg2); }
   .ttl { font-weight: 650; font-size: 15px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ttl small { font-weight: 500; color: var(--muted); }
-  select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; max-width: 150px; }
+  select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; max-width: 150px; min-width: 0; flex: 0 1 auto; }
+  .picking .ttl { flex: none; } .picking .ttl small { display: none; } .picking select { flex: 1 1 0; max-width: none; }
   .ib { border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 8px; width: 32px; height: 32px; display: grid; place-items: center; flex: none; }
   .ib:hover { background: var(--line); color: var(--fg); } .ib.on { color: var(--accent); }
   .ib svg { width: 18px; height: 18px; }
@@ -131,6 +133,7 @@
 
   const host = document.createElement('div');
   host.setAttribute('data-ask-the-app', '');
+  if (INLINE) host.style.cssText = 'display:block;height:100%;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>${css}</style>
     <div class="wrap${INLINE ? ' inline' : ''}">
@@ -496,6 +499,7 @@
       if (!projects.some((x) => x.id === project)) project = FIXED_PROJECT ? project : p.default;
       projSel.innerHTML = projects.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
       projSel.hidden = FIXED_PROJECT || projects.length < 2;
+      $('header').classList.toggle('picking', !projSel.hidden);
       mic.hidden = !s.speech;
       setProject(project);
     } catch (e) {
