@@ -21,7 +21,7 @@ RULES = """Rules:
 - Use only the HELP, CODE and SCREEN information given{own_search}. Never invent buttons, tabs, settings or steps.
 - Write for someone who is not a programmer: short plain sentences, numbered steps when there are steps.
   Name buttons, tabs and menus exactly as the person sees them (the text on the button, emoji included).
-- Don't talk about code, functions or file names unless the question is about the code itself.
+- Don't talk about code, functions or file names unless the question is about the code itself (then name them exactly).
 - If the information doesn't answer the question, say so plainly, then give the nearest thing you did find.
 - Keep it short: under about 150 words unless the steps need more.
 - Last line, only if there is one button, tab or link to press first: SHOW: <its exact on-screen text>"""
@@ -149,10 +149,15 @@ def _local(cfg, proj, idx, eid, c, question, ctx, say):
     help_chars, code_chars = int(c.get("help_chars", 9000)), int(c.get("code_chars", 14000))
     say("Searching the help and the code…")
     q = _query(question, ctx)
+    dev_prefixes = tuple(proj.get("dev_help") or ())
     dev = is_dev_question(question)
-    boost = {p: 1.6 for p in proj.get("dev_help") or []} if dev else None
-    help_hits = pin_screen_page(idx, q, ctx, idx.search(q, ("help", "doc"), limit=max(12, help_chars // 2500), chars=help_chars,
-                                                        boost=boost), help_chars)
+    limit = max(12, help_chars // 2500)
+    if not dev and dev_prefixes:
+        # no code words, but if the best matches are developer pages ("How do I add a job status?"), treat it as one
+        top = idx.search(q, ("help", "doc"), limit=5)
+        dev = sum(h["file"].startswith(dev_prefixes) for h in top) >= 3
+    boost = {p: 1.6 for p in dev_prefixes} if dev else None
+    help_hits = pin_screen_page(idx, q, ctx, idx.search(q, ("help", "doc"), limit=limit, chars=help_chars, boost=boost), help_chars)
     code_hits = idx.search(q, ("code",), limit=14, chars=code_chars)
     help_txt, help_refs = _excerpts(help_hits, "H")
     code_txt, code_refs = _excerpts(code_hits, "C")
