@@ -11,6 +11,7 @@ shown to an AI, or copied to the mirror folder the Claude engine reads.
 """
 import collections
 import fnmatch
+import glob
 import hashlib
 import html
 import json
@@ -184,13 +185,20 @@ def chunk_help(text, base_title):
             pieces.append((start, end, cut, head))
             body = body[len(cut):].strip()
 
+    in_code = False
     for n, line in enumerate(lines, 1):
-        m = re.match(r"^#{1,4}\s+(.+)", line)
+        if line.lstrip().startswith("```"):
+            in_code = not in_code
+        m = None if in_code else re.match(r"^(#{1,4})\s+(.+)", line)
         if m and buf:
             flush(n - 1)
             buf = []
         if m:
-            head = base_title + " › " + m.group(1).strip()[:80] if base_title else m.group(1).strip()[:80]
+            h = m.group(2).strip().rstrip("#").strip()[:80]
+            if len(m.group(1)) == 1 and base_title and h.lower() == base_title.lower():
+                head = base_title                     # the page's own title: no "Title › Title"
+            else:
+                head = base_title + " › " + h if base_title else h
             start = n
         buf.append(line)
     flush(len(lines))
@@ -238,11 +246,40 @@ def list_files(proj):
 
 
 def _help_items(proj):
+    """The help entries, with patterns like "manual/**/*.md" expanded to one entry per file (sorted)."""
     items = []
     for h in proj["help"] or []:
         h = {"file": h} if isinstance(h, str) else dict(h)
+        if any(c in h["file"] for c in "*?["):
+            root = proj["root"]
+            for path in sorted(glob.glob(os.path.join(root, h["file"]), recursive=True)):
+                if os.path.isfile(path):
+                    items.append(dict(h, file=os.path.relpath(path, root).replace(os.sep, "/")))
+            continue
         items.append(h)
     return items
+
+
+def markdown_page(text):
+    """(title, status, text) for a Markdown help page: its front matter blanked (line numbers stay right), comments
+    removed, and app:/show: links (which only work inside the app) reduced to their words."""
+    title, status = "", ""
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end > 0:
+            close = text.find("\n", end + 4)
+            close = len(text) if close < 0 else close
+            for line in text[3:end].splitlines():
+                m = re.match(r"^\s*(title|status)\s*:\s*(.*?)\s*$", line)
+                if m:
+                    title, status = (m.group(2), status) if m.group(1) == "title" else (title, m.group(2))
+            text = "\n" * text.count("\n", 0, close) + text[close:]
+    text = re.sub(r"<!--.*?-->", lambda m: "\n" * m.group().count("\n"), text, flags=re.S)
+    text = re.sub(r"\[([^\]]+)\]\((?:app|show):[^)]*\)", r"\1", text)
+    if not title:
+        m = re.search(r"^#\s+(.+)$", text, re.M)
+        title = m.group(1).strip() if m else ""
+    return title, status, text
 
 
 def read_text(path):
@@ -337,6 +374,12 @@ class Index:
                 first_line = 1
                 whole_help.add(rel)
             ext = os.path.splitext(rel)[1].lower()
+            if ext == ".md":
+                page_title, status, text = markdown_page(text)
+                if status == "planned":       # a placeholder page: nothing written yet
+                    whole_help.add(rel)
+                    continue
+                title = title or page_title
             converted = ext in (".html", ".htm", ".js", ".py", ".gs") or bool(h.get("heading"))
             if converted:
                 text = html_to_text(text, h.get("heading"))

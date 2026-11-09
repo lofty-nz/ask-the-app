@@ -120,6 +120,33 @@ check("answer, show and cited source", res["show"] == "✉ Email invoice" and re
 check("screen info reaches the AI", "Orders" in calls[0][1]["content"] and "✉ Email invoice" in calls[0][1]["content"])
 check("question logged", answer.recent_questions("shop")[0]["q"] == "How do I email an invoice?")
 
+# ---- manual folders (Markdown pages with front matter) ----
+write("manual/index.md", "---\ntitle: Shop manual\nstatus: ready\n---\n# Shop manual\n\nThe front page.\n")
+write("manual/screens/orders.md", "---\ntitle: Orders screen\nkind: screen\nstatus: draft\n---\n# Orders screen\n\n"
+      "The Orders screen lists every order.\n\nAnswers: Where are my orders?\n\n## Refund an order from the Orders screen\n"
+      "<!-- hints: orders -->\n- **💸 Refund** `refundOrder`: Gives the money back. Open [the refund page](show:orders#refundOrder).\n\n"
+      "```\n# not a heading inside code\n```\n")
+write("manual/screens/stock.md", "---\ntitle: Stock\nstatus: planned\noldhelp: start\n---\n# Stock\n\nNot written yet. UNIQUEPLACEHOLDERWORD\n")
+mp = dict(proj, help=["manual/**/*.md"], engines={"fake": {"help_chars": 1234}})
+mcfg = config.load(os.path.join(TMP, "none.json"), {"shopm": mp})
+M = mcfg["projects"]["shopm"]
+items = index._help_items(M)
+check("help patterns expand to each page", sorted(i["file"] for i in items) == ["manual/index.md", "manual/screens/orders.md", "manual/screens/stock.md"], items)
+midx = index.Index.get(M)
+mchunks = [c for c in midx.chunks if c["file"].startswith("manual/")]
+check("placeholder pages are skipped", not any("UNIQUEPLACEHOLDERWORD" in c["text"] for c in midx.chunks))
+check("front matter is left out of the text", not any("kind: screen" in c["text"] for c in mchunks))
+check("chunk titles use the page title", any(c["title"] == "Orders screen › Refund an order from the Orders screen" for c in mchunks), [c["title"] for c in mchunks])
+check("line numbers still match the file", any(c["start"] == 12 and "Refund an order" in c["text"] for c in mchunks), [(c["start"], c["title"]) for c in mchunks])
+check("comments and app/show links become plain words", not any("hints:" in c["text"] or "show:" in c["text"] for c in mchunks)
+      and any("Open the refund page." in c["text"] for c in mchunks))
+check("a # line inside a code block isn't a heading", not any(c["title"].endswith("not a heading inside code") for c in mchunks))
+hits = midx.search("refund an order", kinds=("help",))
+check("manual pages are found as help", hits and hits[0]["file"] == "manual/screens/orders.md", [(h["file"], h["title"]) for h in hits[:3]])
+pinned = answer.pin_screen_page(midx, "front page", {"manual": "manual/screens/orders.md"}, midx.search("front page", kinds=("help",)), 9000)
+check("the current screen's page is put first", pinned and pinned[0]["file"] == "manual/screens/orders.md", [(h["file"], h["title"]) for h in pinned[:3]])
+check("per-project engine settings exist", M["engines"]["fake"]["help_chars"] == 1234)
+
 # ---- the web server ----
 import serve  # noqa: E402
 

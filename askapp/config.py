@@ -57,6 +57,7 @@ PROJECT_DEFAULTS = {
     "include": None,       # None = index.DEFAULT_INCLUDE
     "exclude": [],         # added to index.DEFAULT_EXCLUDE
     "examples": [],        # example questions shown before the first question
+    "engines": {},         # per-project engine settings, e.g. {"strata": {"help_chars": 45000}}
     "max_file_kb": 2048,
 }
 
@@ -86,6 +87,7 @@ def load(path=None, extra_projects=None):
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             _merge(cfg, json.load(f))
+    cfg["engines"] = {k: v for k, v in cfg["engines"].items() if v}   # "claude": null in a config switches it off
     cfg["projects"] = dict(cfg.get("projects") or {}, **(extra_projects or {}))
     cfg["projects"] = {pid: project(pid, p) for pid, p in cfg["projects"].items()}
     cfg["config_path"] = path

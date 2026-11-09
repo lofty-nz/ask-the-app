@@ -111,12 +111,33 @@ def _split_tail(text):
     return answer, show[:80], sources[:12]
 
 
+def pin_screen_page(idx, q, ctx, hits, budget):
+    """When the person is on a screen that has a manual page (context "manual": "manual/screens/x.md"), always give
+    the AI that page's opening piece and its best-matching piece, ahead of the rest."""
+    page = str((ctx or {}).get("manual") or "")
+    if not page:
+        return hits
+    mine = [dict(c, i=i, score=0) for i, c in enumerate(idx.chunks) if c["file"] == page and c["kind"] == "help"]
+    if not mine:
+        return hits
+    best = next((h for h in idx.search(q, ("help",), limit=40) if h["file"] == page), None)
+    pinned = [mine[0]] + ([best] if best and best["i"] != mine[0]["i"] else [])
+    seen = {h["i"] for h in pinned}
+    out, total = list(pinned), sum(len(h["text"]) for h in pinned)
+    for h in hits:
+        if h["i"] in seen or total + len(h["text"]) > budget:
+            continue
+        out.append(h)
+        total += len(h["text"])
+    return out
+
+
 def _local(cfg, proj, idx, eid, c, question, ctx, say):
     call = engines.ollama_chat if (c.get("type") or eid) == "ollama" else engines.strata_chat
     help_chars, code_chars = int(c.get("help_chars", 9000)), int(c.get("code_chars", 14000))
     say("Searching the help and the code…")
     q = _query(question, ctx)
-    help_hits = idx.search(q, ("help", "doc"), limit=12, chars=help_chars)
+    help_hits = pin_screen_page(idx, q, ctx, idx.search(q, ("help", "doc"), limit=max(12, help_chars // 2500), chars=help_chars), help_chars)
     code_hits = idx.search(q, ("code",), limit=14, chars=code_chars)
     help_txt, help_refs = _excerpts(help_hits, "H")
     code_txt, code_refs = _excerpts(code_hits, "C")
@@ -219,6 +240,7 @@ def ask(cfg, pid, question, context=None, engine="auto", say=None):
     order = engine_order(cfg, engine)
     for n, eid in enumerate(order):
         c = dict(cfg["engines"][eid])
+        c.update((proj.get("engines") or {}).get(eid) or {})    # per-project settings, e.g. more manual text for Strata
         kind = c.get("type") or eid
         if len(order) > 1:   # Auto: skip what's off without waiting on it
             st = engines.status({"engines": {eid: c}}).get(eid, {})
