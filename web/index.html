@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the App</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #f5f7fa; --card: #ffffff; --fg: #1b2330; --muted: #5d6878; --line: #dde2ea; --accent: #2563eb; --ok: #1f8a4c; --off: #8a94a3; --warn: #b42318; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1117; --card: #161b22; --fg: #e6edf3; --muted: #9aa6b4; --line: #2b333d; --accent: #4c8dff; --ok: #4ac26b; --off: #6e7681; --warn: #ff7b72; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+  .page { max-width: 1240px; margin: 0 auto; padding: 22px 16px 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 470px); gap: 20px; }
+  @media (max-width: 860px) { .page { grid-template-columns: 1fr; } .askcol { order: -1; } }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  h1 img { width: 30px; height: 30px; }
+  .lead { color: var(--muted); margin: 0 0 18px; max-width: 60ch; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 650; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; margin: 0 6px 6px 0; font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--off); } .up .dot { background: var(--ok); } .busy .dot { background: #d29922; }
+  .pill small { color: var(--muted); }
+  .proj { padding: 8px 0; border-top: 1px solid var(--line); } .proj:first-of-type { border-top: 0; padding-top: 0; }
+  .proj b { font-size: 14.5px; } .proj .sub { color: var(--muted); font-size: 12.5px; }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 8px 0; white-space: pre-wrap; word-break: break-all; }
+  button.copy { font: inherit; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 8px; padding: 3px 10px; cursor: pointer; }
+  button.copy:hover { border-color: var(--accent); color: var(--accent); }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  .q { padding: 7px 0; border-top: 1px solid var(--line); cursor: pointer; } .q:first-child { border-top: 0; }
+  .q:hover .qt { color: var(--accent); }
+  .q .meta { color: var(--muted); font-size: 12px; }
+  .tag { font-size: 11px; border-radius: 6px; padding: 0 6px; border: 1px solid var(--line); margin-left: 6px; }
+  .tag.gap { color: var(--warn); border-color: var(--warn); }
+  .askcol { position: sticky; top: 16px; height: calc(100vh - 44px); min-height: 520px; }
+  @media (max-width: 860px) { .askcol { position: static; height: 72vh; } }
+  #askbox { height: 100%; }
+  code { font: 12.5px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="page">
+  <main>
+    <h1><img src="icon.svg" alt="">Ask the App</h1>
+    <p class="lead">Ask a program how to do something, typed or spoken. The answer is found in its help first, then in its code, and the
+      <b>Show me</b> button points at the place on the screen.</p>
+
+    <section class="card"><h2>Programs</h2><div id="projects" class="muted">Loading…</div></section>
+    <section class="card"><h2>AIs that can answer</h2><div id="engines" class="muted">Loading…</div>
+      <p class="muted" style="margin:6px 0 0">Auto uses the first one that's on: <span id="order"></span>. Strata is only used when it's already on,
+        and it answers one chat at a time, so a busy Strata is waited for.</p></section>
+    <section class="card"><h2>Put the button in your own app</h2>
+      <p style="margin:0">Add this one line to the app's page, before <code>&lt;/body&gt;</code>:</p>
+      <pre id="snippet"></pre>
+      <button class="copy" id="copy" type="button">Copy</button>
+      <p class="muted" style="margin:10px 0 0">An app on an <b>https</b> address needs this server on https too (browsers block plain http from
+        https pages), and the microphone only works on https or localhost pages. The app can add its own screen info with
+        <code>AskTheApp.context = () =&gt; ({place: "Jobs tab"})</code>.</p></section>
+    <section class="card"><h2>Recent questions</h2><div id="recent" class="muted">None yet.</div>
+      <p class="muted" style="margin:8px 0 0"><span class="tag gap">no help</span> means the help didn't cover it: worth adding to the help.</p></section>
+  </main>
+  <aside class="askcol"><div id="askbox"></div></aside>
+</div>
+<script src="ask.js" data-inline="askbox"></script>
+<script>
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const get = (p) => fetch(p).then((r) => r.json());
+  let current = '';
+  try { current = JSON.parse(localStorage.getItem('asktheapp.project') || '""'); } catch (e) { /* private window */ }
+
+  function snippet() {
+    document.getElementById('snippet').textContent = `<script src="${location.origin}/ask.js" data-project="${current || 'PROJECT'}"><\/script>`;
+  }
+  document.getElementById('copy').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(document.getElementById('snippet').textContent); e.target.textContent = 'Copied'; } catch (err) { e.target.textContent = 'Select it and copy'; }
+    setTimeout(() => (e.target.textContent = 'Copy'), 1500);
+  });
+
+  async function projects() {
+    const p = await get('api/projects?summary=1');
+    if (!current || !p.projects.some((x) => x.id === current)) current = p.default;
+    document.getElementById('projects').innerHTML = p.projects.map((x) => `<div class="proj"><b>${esc(x.name)}</b> <span class="muted">(${esc(x.id)})</span>
+      <div class="sub">${x.about ? esc(x.about) + '<br>' : ''}${x.index.files} files · ${x.index.help} help sections from ${x.index.help_files.length} help file${x.index.help_files.length === 1 ? '' : 's'} ·
+      ${x.index.code} code pieces${x.index.skipped_secret ? ' · ' + x.index.skipped_secret + ' secret-looking files left out' : ''}</div></div>`).join('');
+    snippet();
+    recent();
+  }
+
+  async function engines() {
+    const s = await get('api/status');
+    document.getElementById('engines').innerHTML = Object.entries(s.engines).map(([id, e]) =>
+      `<span class="pill ${e.up ? (e.busy ? 'busy' : 'up') : ''}"><span class="dot"></span>${esc(e.label)} <small>${esc(e.note || '')}</small></span>`).join('') +
+      `<span class="pill ${s.speech ? 'up' : ''}"><span class="dot"></span>🎤 Speech to text <small>${s.speech ? 'on' : 'not set up'}</small></span>`;
+    document.getElementById('order').textContent = s.auto_order.map((e) => (s.engines[e] || {}).label || e).join(', then ');
+  }
+
+  async function recent() {
+    const r = await get('api/recent?limit=15&project=' + encodeURIComponent(current || ''));
+    const box = document.getElementById('recent');
+    if (!r.questions.length) { box.textContent = 'None yet.'; return; }
+    box.innerHTML = r.questions.map((q) => `<div class="q" data-q="${esc(q.q)}"><div class="qt">${esc(q.q)}${q.from_help ? '' : '<span class="tag gap">no help</span>'}</div>
+      <div class="meta">${esc(q.t.replace('T', ' '))} · ${esc(q.engine)} · ${q.seconds} s</div></div>`).join('');
+    box.querySelectorAll('.q').forEach((d) => d.addEventListener('click', () => window.AskTheApp.ask(d.dataset.q)));
+  }
+
+  window.addEventListener('asktheapp:answer', () => setTimeout(recent, 300));
+  // follow the panel's program picker
+  setInterval(() => {
+    let p = '';
+    try { p = JSON.parse(localStorage.getItem('asktheapp.project') || '""'); } catch (e) { return; }
+    if (p && p !== current) { current = p; snippet(); recent(); }
+  }, 1000);
+  projects().catch((e) => (document.getElementById('projects').textContent = 'Couldn’t load: ' + e));
+  engines().catch((e) => (document.getElementById('engines').textContent = 'Couldn’t load: ' + e));
+  setInterval(() => engines().catch(() => {}), 15000);
+</script>
+</body>
+</html>

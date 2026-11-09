@@ -1,0 +1,37 @@
+{
+  "host": "127.0.0.1",
+  "port": 8795,
+  "transcribe_url": "http://192.168.50.235:8090/api/dictate",
+  "auto_order": ["claude", "strata", "ollama"],
+  "engines": {
+    "ollama": {"label": "Qwen (server)", "url": "http://192.168.50.235:11434", "model": "qwen3:8b"},
+    "strata": {"label": "Strata (main PC)", "base_url": "http://127.0.0.1:8080/v1", "api_key_file": "~/.config/strata/api_key"},
+    "claude": {"label": "Claude (online)", "model": "sonnet"}
+  },
+  "projects": {
+    "ttr": {
+      "name": "Test Tag & Repair",
+      "about": "A business app for a test-and-tag and repair business: leads, jobs, estimates, invoices, bills, inventory and test & tag reminders.",
+      "root": "~/Sandbox/ttr",
+      "help": [
+        "README.md",
+        {"file": "ttr.html", "from": "function helpPanel(", "to": "\n}\n", "heading": "sec\\('\\w+',\\s*'([^']*)'", "title": "Help tab"}
+      ],
+      "exclude": ["tests", "extract", "games", "hub-patches", "moved-to-server-*"],
+      "examples": ["How do I send an estimate?", "How do I turn a lead into a job?", "How do I make a backup?"]
+    },
+    "code-lens": {
+      "name": "Code Lens",
+      "about": "A code viewer that maps a program's functions, variables and files and the lines connecting them.",
+      "root": "~/Sandbox/Code_Lens",
+      "help": ["START-HERE.md", "README.md", "help.html"],
+      "exclude": ["reports", "examples"]
+    },
+    "stream-health": {
+      "name": "Stream Health",
+      "root": "~/Sandbox/Streamhealth",
+      "help": ["README.md", "docs/GUIDE.md"],
+      "exclude": ["blog", "reports", "docs/archive/*", "docs/research/*", "docs/plans/*", "tests", "examples", "clips", "debug", "tmp_*"]
+    }
+  }
+}

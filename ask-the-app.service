@@ -1,0 +1,11 @@
+[Unit]
+Description=Ask the App (answers questions about a program from its help and code)
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 %h/Sandbox/ask-the-app/serve.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
