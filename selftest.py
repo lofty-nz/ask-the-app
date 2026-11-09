@@ -140,6 +140,8 @@ check("chunk titles use the page title", any(c["title"] == "Orders screen › Re
 check("line numbers still match the file", any(c["start"] == 12 and "Refund an order" in c["text"] for c in mchunks), [(c["start"], c["title"]) for c in mchunks])
 check("comments and app/show links become plain words", not any("hints:" in c["text"] or "show:" in c["text"] for c in mchunks)
       and any("Open the refund page." in c["text"] for c in mchunks))
+_t = index.markdown_page("---\ntitle: X\n---\n# X\n\n```\n<!-- hints: orders -->\n```\n\n<!-- hidden note -->\nText\n")[2]
+check("a comment inside a code block is kept, others dropped", "<!-- hints: orders -->" in _t and "hidden note" not in _t, _t)
 check("a # line inside a code block isn't a heading", not any(c["title"].endswith("not a heading inside code") for c in mchunks))
 hits = midx.search("refund an order", kinds=("help",))
 check("manual pages are found as help", hits and hits[0]["file"] == "manual/screens/orders.md", [(h["file"], h["title"]) for h in hits[:3]])

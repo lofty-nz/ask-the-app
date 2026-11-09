@@ -274,7 +274,10 @@ def markdown_page(text):
                 if m:
                     title, status = (m.group(2), status) if m.group(1) == "title" else (title, m.group(2))
             text = "\n" * text.count("\n", 0, close) + text[close:]
-    text = re.sub(r"<!--.*?-->", lambda m: "\n" * m.group().count("\n"), text, flags=re.S)
+    # drop comments, but not inside ``` code blocks (a page may show a comment as an example, e.g. a hints list)
+    parts = re.split(r"(^```.*?^```[^\n]*$)", text, flags=re.S | re.M)
+    text = "".join(p if p.startswith("```") else re.sub(r"<!--.*?-->", lambda m: "\n" * m.group().count("\n"), p, flags=re.S)
+                   for p in parts)
     text = re.sub(r"\[([^\]]+)\]\((?:app|show):[^)]*\)", r"\1", text)
     if not title:
         m = re.search(r"^#\s+(.+)$", text, re.M)
