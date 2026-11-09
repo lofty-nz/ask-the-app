@@ -81,8 +81,9 @@ def main():
     t_all = time.monotonic()
     for k, q in enumerate(qs, 1):
         want = [page_file(p) for p in q.get("pages") or []]
+        boost = {pp: 1.6 for pp in proj.get("dev_help") or []} if answer.is_dev_question(q["q"]) else None
         hits = answer.pin_screen_page(idx, answer._query(q["q"], {}), {}, idx.search(answer._query(q["q"], {}), ("help", "doc"),
-                                      limit=max(12, help_chars // 2500), chars=help_chars), help_chars)
+                                      limit=max(12, help_chars // 2500), chars=help_chars, boost=boost), help_chars)
         got = [h["file"] for h in hits]
         rank = next((i + 1 for i, f in enumerate(got) if f in want), 0)
         found = bool(rank) or not want

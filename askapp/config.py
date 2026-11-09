@@ -58,6 +58,7 @@ PROJECT_DEFAULTS = {
     "exclude": [],         # added to index.DEFAULT_EXCLUDE
     "examples": [],        # example questions shown before the first question
     "engines": {},         # per-project engine settings, e.g. {"strata": {"help_chars": 45000}}
+    "dev_help": [],        # path prefixes of help written for developers (e.g. "manual/dev/"): preferred for code questions
     "max_file_kb": 2048,
 }
 

@@ -40,6 +40,18 @@ first, then follow the code that handles them. Be quick: usually 2 to 8 searches
 - The line before SHOW (or the last line if there is no SHOW): SOURCES: the files and line numbers you used, e.g.
   SOURCES: app.html:120, server.py:88"""
 
+DEV_WORDS = re.compile(r"\b(code|coding|function|functions|method|route|routes|endpoint|variable|module|regex|"
+                       r"python|javascript|\w+\.(?:py|js|html|gs|json|jsonl|txt|md)|in the code|which function|what function|"
+                       r"which file|what file|where (?:is|are|does)\b.{0,60}\b(?:defined|kept|stored|written|saved|remember\w*|decided))\b", re.I)
+DEV_HINT = ("\nThis question is about how the program is built: name the exact functions, files, data files and "
+            "settings keys from the excerpts (in `backticks`), and say what each one does.")
+
+
+def is_dev_question(q):
+    """True when the person is asking about the code (which function, which file, where it's stored…)."""
+    return bool(DEV_WORDS.search(q or ""))
+
+
 SEARCH_HINT = ("\nIf these excerpts are clearly not enough, you may instead reply with ONE line only:\n"
                "SEARCH: <up to 8 words or code names to look for>\nand you will get more excerpts.")
 
@@ -137,13 +149,16 @@ def _local(cfg, proj, idx, eid, c, question, ctx, say):
     help_chars, code_chars = int(c.get("help_chars", 9000)), int(c.get("code_chars", 14000))
     say("Searching the help and the code…")
     q = _query(question, ctx)
-    help_hits = pin_screen_page(idx, q, ctx, idx.search(q, ("help", "doc"), limit=max(12, help_chars // 2500), chars=help_chars), help_chars)
+    dev = is_dev_question(question)
+    boost = {p: 1.6 for p in proj.get("dev_help") or []} if dev else None
+    help_hits = pin_screen_page(idx, q, ctx, idx.search(q, ("help", "doc"), limit=max(12, help_chars // 2500), chars=help_chars,
+                                                        boost=boost), help_chars)
     code_hits = idx.search(q, ("code",), limit=14, chars=code_chars)
     help_txt, help_refs = _excerpts(help_hits, "H")
     code_txt, code_refs = _excerpts(code_hits, "C")
     system = LOCAL_SYSTEM.format(name=proj["name"], about=_about(proj), rules=RULES.format(own_search=""))
-    user = ("QUESTION: %s\n\nSCREEN (what the person is looking at now):\n%s\n\nHELP excerpts:\n%s\n\nCODE excerpts:\n%s\n%s"
-            % (question, context_text(ctx), help_txt or "(none found)", code_txt or "(none found)", SEARCH_HINT))
+    user = ("QUESTION: %s\n\nSCREEN (what the person is looking at now):\n%s\n\nHELP excerpts:\n%s\n\nCODE excerpts:\n%s\n%s%s"
+            % (question, context_text(ctx), help_txt or "(none found)", code_txt or "(none found)", SEARCH_HINT, DEV_HINT if dev else ""))
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     text = call(c, messages, say)
     searched = []
@@ -153,7 +168,7 @@ def _local(cfg, proj, idx, eid, c, question, ctx, say):
         say("Looking for more: %s" % searched[0])
         q2 = _query(question, ctx, extra=m.group(1) + " " + m.group(1))
         given = {h["i"] for h in help_hits + code_hits}
-        more_help = idx.search(q2, ("help", "doc"), limit=6, chars=help_chars // 2, skip=given)
+        more_help = idx.search(q2, ("help", "doc"), limit=6, chars=help_chars // 2, skip=given, boost=boost)
         more_code = idx.search(q2, ("code",), limit=8, chars=code_chars // 2, skip=given)
         mh_txt, mh_refs = _excerpts(more_help, "H", len(help_refs) + 1)
         mc_txt, mc_refs = _excerpts(more_code, "C", len(code_refs) + 1)

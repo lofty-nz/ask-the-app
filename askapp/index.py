@@ -409,8 +409,9 @@ class Index:
         self.avg = {k: (sum(c["n"] for c in self.chunks if c["kind"] == k) / max(1, sum(1 for c in self.chunks if c["kind"] == k)))
                     for k in ("help", "doc", "code")}
 
-    def search(self, query, kinds=("help", "doc", "code"), limit=10, chars=None, skip=()):
-        """Best chunks for query (a string or {term: weight}), highest score first. chars caps the total text."""
+    def search(self, query, kinds=("help", "doc", "code"), limit=10, chars=None, skip=(), boost=None):
+        """Best chunks for query (a string or {term: weight}), highest score first. chars caps the total text.
+        boost: {path prefix: factor}, e.g. {"manual/dev/": 1.6} to prefer developer pages for a code question."""
         q = query if isinstance(query, dict) else collections.Counter(terms(query))
         if not q or not self.chunks:
             return []
@@ -433,6 +434,9 @@ class Index:
                     s *= 0.85
                 elif c["kind"] == "help":
                     s *= 1.25    # the help is written for people, so it wins a close call
+                for prefix, factor in (boost or {}).items():
+                    if c["file"].startswith(prefix):
+                        s *= factor
                 scored.append((s, i))
         scored.sort(reverse=True)
         out, total = [], 0
