@@ -8,6 +8,7 @@
  *   data-server    the Ask the App server (default: wherever this file was loaded from)
  *   data-inline    id of an element to fill with the ask panel instead of showing a floating button
  *   data-position  "right" (default) or "left" for the floating button
+ *   data-x, data-y   how far the button sits from that corner, in pixels (default 20, 20), e.g. to clear a side bar
  *   data-theme     "light" or "dark" (default: follow the computer)
  *   data-accent    button colour, e.g. "#2a7d4f"
  *
@@ -28,6 +29,8 @@
   const SERVER = (opt.server || (script && script.src ? new URL(script.src, location.href).origin : location.origin)).replace(/\/+$/, '');
   const INLINE = opt.inline ? document.getElementById(opt.inline) : null;
   const FIXED_PROJECT = !!opt.project;
+  const SIDE = opt.position === 'left' ? 'left' : 'right';
+  const X = Math.max(0, parseInt(opt.x, 10) || 20), Y = Math.max(0, parseInt(opt.y, 10) || 20);
 
   const store = {
     get(k, d) { try { const v = localStorage.getItem('asktheapp.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -52,13 +55,13 @@
           font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; color: var(--fg); }
   .wrap.dark { --bg: #161b22; --bg2: #0f1318; --fg: #e6edf3; --muted: #9aa6b4; --line: #2b333d; --bot: #1f2630; --warn: #ff7b72; --ok: #4ac26b;
                --shadow: 0 12px 40px rgba(0,0,0,.55); }
-  .fab { position: fixed; bottom: 20px; ${opt.position === 'left' ? 'left' : 'right'}: 20px; z-index: 2147483000; width: 54px; height: 54px;
+  .fab { position: fixed; bottom: ${Y}px; ${SIDE}: ${X}px; z-index: 2147483000; width: 54px; height: 54px;
          border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; box-shadow: var(--shadow);
          display: grid; place-items: center; transition: transform .15s; }
   .fab:hover { transform: scale(1.07); } .fab:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
   .fab svg { width: 28px; height: 28px; }
-  .panel { position: fixed; bottom: 86px; ${opt.position === 'left' ? 'left' : 'right'}: 20px; z-index: 2147483000; width: 400px; max-width: calc(100vw - 32px);
-           height: 600px; max-height: calc(100vh - 110px); background: var(--bg); border: 1px solid var(--line); border-radius: 16px;
+  .panel { position: fixed; bottom: ${Y + 66}px; ${SIDE}: ${X}px; z-index: 2147483000; width: 400px; max-width: calc(100vw - ${X + 12}px);
+           height: 600px; max-height: calc(100vh - ${Y + 90}px); background: var(--bg); border: 1px solid var(--line); border-radius: 16px;
            box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
   .panel[hidden] { display: none; }
   .wrap.inline { height: 100%; }
@@ -118,7 +121,7 @@
           box-shadow: 0 0 0 4000px rgba(0,0,0,.18); animation: ring 1s ease-in-out infinite alternate; }
   .ring.on { display: block; }
   @keyframes ring { from { outline: 0 solid transparent; } to { outline: 6px solid color-mix(in srgb, var(--accent) 35%, transparent); } }
-  @media (max-width: 520px) { .wrap:not(.inline) .panel { left: 8px; right: 8px; bottom: 76px; width: auto; height: 75vh; } .fab { bottom: 12px; } }
+  @media (max-width: 520px) { .wrap:not(.inline) .panel { left: 8px; right: 8px; bottom: ${Math.min(Y, 12) + 64}px; width: auto; max-width: none; height: 75vh; } .fab { bottom: ${Math.min(Y, 12)}px; } }
   `;
 
   const ICON = {

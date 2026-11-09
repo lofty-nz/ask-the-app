@@ -40,6 +40,7 @@ can't change how the program looks, and the program can't break it.
 | `data-server` | where Ask the App runs (default: wherever `ask.js` came from) |
 | `data-inline="someId"` | fill that element with the panel instead of a floating button |
 | `data-position="left"` | button on the left |
+| `data-x="100"`, `data-y="20"` | how far the button sits from the corner, in pixels (to clear a side bar or another button) |
 | `data-theme="dark"` / `"light"` | otherwise it follows the computer's setting |
 | `data-accent="#2a7d4f"` | button colour |
 
