@@ -35,6 +35,9 @@ def write(rel, text):
 
 
 # ---- a small pretend program ----
+# Fake keys, built from pieces so secret scanners don't mistake this file for a real leak.
+FAKE_SK = "sk-" + "live-" + "abcdefghijklmnopqrstuvwx1234"
+FAKE_RE = "re_" + "AbCdEf123456" + "GhIjKl789012MnOp"
 write("README.md", "# Widget Shop\n\n## Sending an invoice\nOpen the order and press **✉ Email invoice**.\n\n"
                    "## Backups\nBackups run every night at 2am.\n")
 write("app.html", "<!doctype html>\n<script>\n" + "\n".join(
@@ -42,9 +45,9 @@ write("app.html", "<!doctype html>\n<script>\n" + "\n".join(
     + ["// filler line %d" % i for i in range(70)]
     + ["function helpPanel(){", "  return sec('start','Getting started','<p>Press <b>➕ New order</b> to begin.</p>')+",
        "  sec('refunds','Refunds','<p>Refunds are made from the <b>💸 Refund</b> button on a paid order.</p>');", "}",
-       "const STRIPE_KEY = \"sk-live-abcdefghijklmnopqrstuvwx1234\";", "</script>\n"]))
+       "const STRIPE_KEY = \"" + FAKE_SK + "\";", "</script>\n"]))
 write("server.py", "def save_order(order):\n    '''Save an order to disk.'''\n    pass\n\n"
-                   "API_TOKEN = 'abcd1234efgh5678ijkl'\nRESEND = 're_AbCdEf123456GhIjKl789012MnOp'\n"
+                   "API_TOKEN = 'abcd1234efgh5678ijkl'\nRESEND = '" + FAKE_RE + "'\n"
                    "re_compile_something_long_name_here = 1\n")
 write("secrets/api_key.txt", "super-secret")
 write("data.json", '{"customers": ["Alice"]}')
@@ -71,7 +74,7 @@ check("skips secret-looking files", "secrets/api_key.txt" not in files and secre
 
 # ---- secrets ----
 red = index.redact(open(os.path.join(TMP, "proj", "server.py")).read() + open(os.path.join(TMP, "proj", "app.html")).read())
-check("hides keys and tokens", "abcd1234efgh5678ijkl" not in red and "sk-live-abcdefghij" not in red and "re_AbCdEf" not in red, red[-400:])
+check("hides keys and tokens", "abcd1234efgh5678ijkl" not in red and FAKE_SK not in red and FAKE_RE not in red, red[-400:])
 check("leaves ordinary names alone", "re_compile_something_long_name_here" in red)
 
 # ---- index + search ----
