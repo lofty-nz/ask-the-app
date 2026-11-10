@@ -97,7 +97,8 @@ def main():
             except (ValueError, engines.EngineError) as e:
                 text, err = "", str(e)
             facts = q.get("facts") or []
-            ok = [f for f in facts if loose(f) and loose(f) in loose(text)]
+            # a fact made only of symbols (like "⤴") is matched as it is; words are matched loosely
+            ok = [f for f in facts if (loose(f) in loose(text) if loose(f) else f.strip() in text)]
             row.update(answer=text, error=err, facts_ok=len(ok), facts_n=len(facts), missing=[f for f in facts if f not in ok],
                        seconds=round(time.monotonic() - t0, 1))
             if facts:
