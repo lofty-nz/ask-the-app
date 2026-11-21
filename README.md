@@ -1,12 +1,26 @@
 # Ask the App
 
 **A button you can add to any program: ask it a question, typed or spoken, and get the answer then and there.**
+
+![Ask the App: the Ask panel open on a demo page, with Show me putting a ring around the Make a backup button](docs/banner.jpg)
+
 "How do I send an estimate?", "Where do I change the email wording?", "Why didn't this invoice get marked paid?"
 
-It looks in the program's **help first, then its code**, writes the answer in plain words, and its
-**👉 Show me** button scrolls to the button you need and puts a ring around it. It can read the answer out loud.
+- **One line to add it.** Put one `<script>` tag in a web page and a round **?** button appears in the corner.
+- **Typed or spoken.** Type the question, or press 🎤 and say it.
+- **Help first, then code.** It looks in the program's help first, then its code, and an AI writes the answer in
+  plain words: Claude, Strata or a local Qwen through Ollama.
+- **👉 Show me.** This button scrolls to the button you need and puts a ring around it. It can also read the
+  answer out loud.
+- **It only looks.** It never changes anything. Data files, and anything that looks like a key or password, are
+  kept away from the AI.
+- **Small and plain.** Python 3.10 or newer, standard library only, no build step. The answers need one of
+  [the AIs](#the-ais) below.
 
-It never changes anything: it only looks.
+<p align="center"><img src="docs/panel-dark.png" width="360" alt="The Ask panel in dark mode with a green button, before the first question"></p>
+
+<sub>Pictures: the real panel on a demo page, before the first question, in light and dark mode. The Show me ring
+was drawn by the panel's own code; no AI answered here.</sub>
 
 ```
  you ask ──► 🎤 Whisper (if spoken) ──► search the help + code ──► an AI writes the answer ──► answer + Show me
@@ -62,7 +76,7 @@ info sent" link that shows exactly what went.
 | Engine | What it is | Good at |
 |---|---|---|
 | `claude` | the `claude` command line, using your Claude subscription (no API key) | the best and quickest at reading code (about 8 s, a few cents of usage per question) |
-| `strata` | the big local model on the main PC | good answers, private, slower (about 50 s); only used when it's already on |
+| `strata` | a big local model on this PC | good answers, private, slower (about 50 s); only used when it's already on |
 | `ollama` | a local model through Ollama (qwen3:8b) | always there and private, but it can get details wrong in big code |
 
 **Auto** tries them in the order in `auto_order` and skips any that are off. The person asking can pick one
